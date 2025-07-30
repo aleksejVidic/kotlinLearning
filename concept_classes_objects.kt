@@ -494,6 +494,367 @@ data class Person(val name: String) {
     var age: Int = 0
 }
 
+data class Person(val name: String) {
+    var age: Int = 0
+}
+
+// copying
+data class User(val name: String, var age: Int) {
+    
+}
+
+// sealed classes and interfaces
+sealed interface Error
+sealed class IOError: Error
+
+class FileReadError(val file: String): IOError()
+class DatabaseError(val source: String): IOError()
+
+object RuntimeError: Error
+
+sealed class Result {
+    data class Success(val data: String): Result()
+    data class Error(val exception: Throwable): Result()
+    object Loading: Result()
+}
+
+fun handleResult(result: Result) {
+    when(result) {
+        is Result.Success -> println("Data: ${result.data}")
+        is Result.Error -> println("Error: ${result.exception.message}")
+        Result.Loading -> println("Loading")
+    }
+}
+
+// constructors in sealed classes
+// sealed class is an abstract class so it cant have instances
+
+sealed class Error1(val message: String) {
+    class NetworkError: Error1("Network failure")
+    class DatabaseError: Error1("Database cannot be reached")
+    class UnknownError: Error1("An unknown error has occured")
+    
+}
+
+enum class ErrorSeverity {
+    MINOR, 
+    MAJOR, 
+    CRITICAL
+}
+
+sealed class Error2(val severity: ErrorSeverity) {
+    class FileReadError(val file: String): Error2(ErrorSeverity.MAJOR)
+    class DatabaseError(val source: String): Error2(ErrorSeverity.CRITICAL)
+    object RuntimeError: Error2(ErrorSeverity.MINOR)
+}
+
+// constructors of sealed classes can have two visibility modifiers: protected(by default) and private
+
+sealed class IOError1 {
+    
+    // protected constructor
+    constructor() {
+        
+    }
+    
+    private constructor(decs: String): this() {
+        
+    }
+    
+    
+}
+
+// sealed classes with when expression
+
+fun log(e: Error2) = when(e) {
+    is Error2.FileReadError -> println("Error while reading file")
+    is Error2.DatabaseError -> println("Error while reading from database")
+    Error2.RuntimeError -> println("Runtime error")
+}
+
+// use case scenarios for sealed classes
+
+//	1. state managment in UI apps
+
+sealed class UIState {
+    data object Loading: UIState()
+    data class Success(val data: String): UIState()
+    data class Error(val exception: Throwable): UIState()
+    
+}
+
+fun updateUI(state: UIState) = when(state) {
+    is UIState.Success -> println("Success")
+    is UIState.Error -> println("Error")
+    UIState.Loading -> println("Loading...")
+}
+
+//	2. payment method handling
+
+sealed class Payment {
+    data class CreditCard(val number: String, val expiryDate: String): Payment()
+    data class PayPal(val email: String): Payment()
+    data object Cash: Payment()
+}
+
+fun processPayment(payment: Payment) = when(payment) {
+    is Payment.CreditCard -> println("Payment using credit")
+    is Payment.PayPal -> println("Payment using paypal")
+    Payment.Cash -> println("Payment using cash")
+}
+
+//	3. API request-response handling
+
+// nested and inner class
+
+// nested class
+
+class Outer {
+    private val bar: Int = 1
+    class Nested {
+        fun foo() = 2
+    }
+}
+
+interface OuterInterface {
+    class InnerClass
+    interface InnerInterface
+}
+
+class OuterClass {
+    class InnerClass
+    interface InnerInterface
+}
+
+// inner class
+class Outer1 {
+    private val bar: Int = 1
+    inner class Inner {
+        fun foo() = bar
+    }
+}
+
+// enum classes
+enum class Direction {
+    NORTH, SOUTH, WEST, EAST
+}
+
+enum class Color(val rgb: Int) {
+    RED(0xFF0000),
+    GREEN(0x00FF00),
+    BLUE(0x0000FF),
+}
+
+// anonymous class
+//Enum constants can declare their own anonymous classes with their corresponding methods, as well as with overriding base methods.
+
+enum class ProtocolState {
+    WAITING  {
+        override fun signal() = TALKING
+    },
+    
+    TALKING {
+        override fun signal() = WAITING
+    };
+    
+    abstract fun signal(): ProtocolState
+}
+
+// implementing interface in enum classes
+// an enum class can implement an interface but it cannot derive from a class
+
+// working with enum constants
+
+enum class RGB1 {
+    RED, 
+    GREEN,
+    BLUE
+}
+
+// object declaration and expression
+
+// object declarations
+object DataProviderManager {
+    private val providers = mutableListOf<String>()
+    fun registerDataProvider(provider: String) {
+        providers.add(provider)
+    }
+    
+    val allDataProviders: Collection<String>
+    	get() = providers
+}
+
+// object declarations cannot be local which means they cannot be nested
+// inside a function, they can be nested inside other objects or non-inner classes
+
+// data object
+
+object MyObject {
+    val num: Int = 3
+}
+
+data object MyDataObject {
+    val num: Int = 3
+}
+
+// use data object with sealed hierarchies
+sealed interface ReadResult
+
+data class Number(val num: Int): ReadResult
+data class Text(val text: String): ReadResult
+data object EndOfFile: ReadResult
+// companion object
+class MyClass {
+    companion object Factory {
+        fun create(): MyClass = MyClass()
+    }
+}
+
+class User1(val name: String) {
+    companion object {
+        fun create(name: String): User1 = User1(name)
+    }
+}
+
+
+class User2(val name: String) {
+    companion object {
+        private val defaultGreeting = "Hello"
+    }
+    
+    fun sayHi() {
+        println(defaultGreeting)
+    }
+}
+
+class User3 {
+    companion object Named {
+        fun show(): String = "User named companion object"
+    }
+}
+
+class User4 {
+    companion object {
+        fun show(): String = "User named comapnion object"
+    }
+}
+
+// members of companion objects are not static members but instance members of comapnion object
+// because of that we can have interfaces to  implement them on the companion object
+
+interface Factory<T> {
+    fun create(name: String): T
+}
+
+class User5(val name: String) {
+    companion object: Factory<User5> {
+        override fun create(name: String): User5 = User5(name)
+    }
+}
+
+// object expression
+val helloWorld = object {
+    val hello = "Hello"
+    val world = "World"
+    
+    override fun toString() = "$hello $world"
+}
+
+// inherit anonymous objects from supertypes
+
+open class BankAccount(initialBalance: Int) {
+    open val balance: Int = initialBalance
+}
+
+interface Transaction {
+    fun execute()
+}
+
+fun specialTranasaction(account: BankAccount) {
+    val temporaryAccount = object: BankAccount(account.balance), Transaction {
+        override val balance = account.balance + 500
+        
+        override fun execute() {
+            println("Executing special transaction. New balance is $balance.")
+        }
+    }
+    temporaryAccount.execute()
+}
+
+// use anonoymous objects as return and value types
+class UserPreferences {
+    private fun getPreferences() = object {
+        val theme: String = "Dark"
+        val fontSize: Int = 14
+    }
+    
+    fun printPreferences() {
+        val preferences = getPreferences()
+        println("Theme: ${preferences.theme}, Font Size: ${preferences.fontSize}")
+    }
+}
+
+// if a function or property that returns an anonymous object has public, protected
+// or internal visibility its actual type is:
+// Any if the object doesnt have a declared supertype
+// the declared supertype if object inherits class
+// the explicityly declared type if there is more than one declared supertype of an object
+// in all these cases members added in the anonymous object are not accessible
+// overriden memebrs are accessible if the they are declared in the actual type of the function or property
+interface Notification {
+    fun notifyUser()
+}
+
+interface DetailedNotification
+
+class NotificationManager {
+    fun getNotification() = object {
+        val message: String = "General notification"
+    }
+    
+    fun getEmailNotification() = object: Notification {
+        override fun notifyUser() { // ACCESSIBLE
+            println("Sending email notification")
+        }
+        
+        val message: String = "You've got mail!" //NOT ACCESSIBLE
+    }
+    
+    fun getDetailedNotification(): DetailedNotification = object: Notification, DetailedNotification {
+        override fun notifyUser() {
+            println("Sending detailed notification")
+        }
+        val message: String = "Detailed message content"
+    }
+    
+}
+
+
+// type aliases
+
+typealias NodeSet = Set<String>
+
+typealias FileTable<K> = Map<K, MutableList<String>>
+
+typealias MyHandler = (Int, String, Any) -> Unit
+//typealias Predicate<T> = (T) -> Boolean
+
+class A {
+    inner class Inner
+}
+
+class B {
+    inner class Inner
+}
+
+typealias AInner = A.Inner
+typealias BInner = B.Inner
+
+typealias Predicate<T> = (T) -> Boolean
+
+fun foo(p: Predicate<Int>) = p(42)
+
+
 
 fun main() {
     val initOrder = InitOrderDemo("Aleksej")
@@ -529,4 +890,92 @@ fun main() {
     BaseCaller().call(Base())
     DerivedCaller().call(Base())
     DerivedCaller().call(Derived())
+
+    val person1 = Person("John")
+    val person2 = Person("John")
+    person1.age = 10
+    person2.age = 20
+    
+    println("${person1 == person2}")
+    println("${person1 === person2}")
+    
+    println("${person1}")
+    val jack = User(name = "Jack", age = 1)
+    val olderJack = jack.copy(age = 2)
+    println(jack)
+    println(olderJack)
+    
+    // data classes and destructuring declaration
+    val jane = User("Jane", 35)
+    val (name, age) = jane // destructuring
+    println("$name, $age")
+    val errors = listOf(Error1.NetworkError(), Error1.DatabaseError(), Error1.UnknownError())
+    errors.forEach {
+        println(it.message)
+    }
+    
+    val DBError = Error2.DatabaseError("db.sql")
+    println(DBError.severity)
+    val success = UIState.Success("Successful created navbar")
+    updateUI(success)
+    val person1 = Person("John")
+    val person2 = Person("John")
+    person1.age = 10
+    person2.age = 20
+    
+    println("${person1 == person2}")
+    println("${person1 === person2}")
+    
+    println("${person1}")
+    val jack = User(name = "Jack", age = 1)
+    val olderJack = jack.copy(age = 2)
+    println(jack)
+    println(olderJack)
+    
+    // data classes and destructuring declaration
+    val jane = User("Jane", 35)
+    val (name, age) = jane // destructuring
+    println("$name, $age")
+    val errors = listOf(Error1.NetworkError(), Error1.DatabaseError(), Error1.UnknownError())
+    errors.forEach {
+        println(it.message)
+    }
+    
+    val DBError = Error2.DatabaseError("db.sql")
+    println(DBError.severity)
+    val success = UIState.Success("Successful created navbar")
+    updateUI(success)
+    val demo = Outer.Nested().foo()
+    println(demo)
+    val demo1 = Outer1().Inner().foo()
+    println(demo1)
+    for(color in RGB1.entries) println(color.toString())
+    println("${RGB1.valueOf("RED")}")
+    println(RGB1.RED.name)
+    println(RGB1.BLUE.ordinal)
+    
+    DataProviderManager.registerDataProvider("M:tel")
+    println(DataProviderManager.allDataProviders)
+    val myObject = object {
+        val name = "Singleton"
+    }
+    println(MyObject)
+    println(MyDataObject)
+    println(Number(8))
+    println(EndOfFile)
+    val userInstance = User1.create("John Doe")
+    println(userInstance.name)
+    User2("Nick").sayHi()
+    val reference1 = User3
+    println(reference1)
+    val reference2 = User4
+    println(reference2)
+    val userFactory: Factory<User5> = User5
+    val newUser = userFactory.create("Example User")
+    println(newUser.name)
+    println(helloWorld)
+    val f: (Int) -> Boolean = { it > 0 }
+    println(foo(f))
+    val p: Predicate<Int> = { it > 0 }
+    println(listOf(1, -2).filter(p))
 }
